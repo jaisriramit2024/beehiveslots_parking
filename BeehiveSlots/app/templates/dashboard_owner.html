@@ -1,0 +1,192 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .slot-booked {
+        color: #ff4d4d;
+        font-weight: bold;
+    }
+
+    .slot-free {
+        color: #00e676;
+        font-weight: bold;
+    }
+
+    .vehicle-radio {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .vehicle-radio label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    .lot-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 0.8rem 1rem;
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+    }
+
+    .lot-card img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+
+    .lot-card-info {
+        flex: 1;
+    }
+
+    .lot-badge {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 20px;
+        background: rgba(255, 215, 0, 0.15);
+        color: var(--primary);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        margin-right: 4px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    @media (max-width: 600px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    input[type="file"] {
+        padding: 0.5rem 0;
+        color: rgba(255, 255, 255, 0.6);
+    }
+</style>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Host Dashboard 🐝</h2>
+    <span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">{{ session.get('name') }}</span>
+</div>
+
+<div class="owner-dashboard">
+
+    <!-- Left: Listings -->
+    <div class="glass-panel" style="flex: 2; padding: 2rem;">
+        <h3 style="color: var(--primary); margin-bottom: 0.5rem;">My Earnings</h3>
+        <div style="background: rgba(255,255,255,0.04); padding: 1.2rem; border-radius: 12px; margin-bottom: 2rem;">
+            <h4 style="color:rgba(255,255,255,0.8);">₹{{ earnings }} earned so far 🎉</h4>
+        </div>
+
+        <h3 style="color: var(--primary); margin-bottom: 1rem;">My Parking Spaces</h3>
+        {% if parking_lots %}
+        {% for lot in parking_lots %}
+        <div class="lot-card">
+            {% if lot.image_filename %}
+            <img src="{{ url_for('static', filename='uploads/' + lot.image_filename) }}" alt="{{ lot.name }}">
+            {% else %}
+            <div
+                style="width:60px;height:60px;border-radius:8px;background:rgba(255,215,0,0.08);display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;">
+                🅿️</div>
+            {% endif %}
+            <div class="lot-card-info">
+                <strong>{{ lot.name }}</strong>
+                {% if lot.city %}<div style="font-size:0.82rem;color:rgba(255,255,255,0.4);margin-top:2px;">📍 {{
+                    lot.city }}</div>{% endif %}
+                {% if lot.full_address %}<div style="font-size:0.78rem;color:rgba(255,255,255,0.3);">{{ lot.full_address
+                    }}</div>{% endif %}
+                <div style="margin-top:6px;">
+                    <span class="lot-badge">{{ lot.available_slots }} slots</span>
+                    <span class="lot-badge">
+                        {% if lot.vehicle_type == 'car' %}🚗 Car
+                        {% elif lot.vehicle_type == 'bike' %}🏍️ Bike
+                        {% else %}🚗🏍️ Both{% endif %}
+                    </span>
+                    {% if lot.price %}<span class="lot-badge">₹{{ lot.price }}/hr</span>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="color: rgba(255,255,255,0.4); font-size: 0.9rem;">No spaces listed yet. Use the form →</p>
+        {% endif %}
+    </div>
+
+    <!-- Right: Add Parking Form -->
+    <div class="glass-panel" style="flex: 1; padding: 2rem; align-self: flex-start;">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">Add a Parking Space</h3>
+
+        <form method="POST" action="/add_parking" enctype="multipart/form-data"
+            style="background: transparent; box-shadow: none; padding: 0;">
+
+            <div class="form-group">
+                <label>Parking Name *</label>
+                <input name="parking_name" required placeholder="e.g., Sunrise Parking Lot">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>City / Location *</label>
+                    <input name="city" required placeholder="e.g., Chennai">
+                </div>
+                <div class="form-group">
+                    <label>Price per Hour (₹)</label>
+                    <input name="price" type="number" min="0" placeholder="e.g., 50 (optional)">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Full Address *</label>
+                <input name="full_address" required placeholder="e.g., 45 Anna Salai, T. Nagar, Chennai">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Latitude *</label>
+                    <input name="latitude" type="number" step="any" required placeholder="e.g., 13.0827">
+                </div>
+                <div class="form-group">
+                    <label>Longitude *</label>
+                    <input name="longitude" type="number" step="any" required placeholder="e.g., 80.2707">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Total Available Slots *</label>
+                <input name="available_slots" type="number" min="1" required placeholder="e.g., 10">
+            </div>
+
+            <div class="form-group">
+                <label>Vehicle Type *</label>
+                <div class="vehicle-radio">
+                    <label><input type="radio" name="vehicle_type" value="car" checked> 🚗 Car</label>
+                    <label><input type="radio" name="vehicle_type" value="bike"> 🏍️ Bike</label>
+                    <label><input type="radio" name="vehicle_type" value="both"> 🚗🏍️ Both</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Parking Image</label>
+                <input name="parking_image" type="file" accept="image/*">
+            </div>
+
+            <button class="btn" style="width: 100%; margin-top: 0.5rem;">+ List This Space</button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

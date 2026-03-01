@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beehive Slots 🐝</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- SocketIO Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript">
+        var socket = io();
+        socket.on('connect', function () {
+            console.log('Connected to WebSocket!');
+        });
+
+        // Listen for slot updates
+        socket.on('update_slots', function (data) {
+            console.log('Slot update received! Refreshing...');
+            // In a full SPA (Single Page App) we would update the DOM via JS.
+            // For this Enterprise Flask implementation, reloading the page ensures data consistency with SSR.
+            location.reload();
+        });
+    </script>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="brand">🐝 Beehive Slots</a>
+        <div class="nav-links">
+            {% if session.get('user_id') %}
+            <span class="wallet-box">
+                💰 ₹{{ session.get('wallet', 0) }}
+            </span>
+            <span style="color:white; margin-right: 1rem; margin-left: 1rem;">Hello, {{ session.get('name') }}</span>
+            {% if session.get('role') == 'Owner' %}
+            <a href="/owner_dashboard">My Dashboard</a>
+            {% else %}
+            <a href="/driver_dashboard">My Dashboard</a>
+            {% endif %}
+            <a href="/logout">Logout</a>
+            {% else %}
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+            <a href="/register">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div
+            style="background: #ffecb3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 5px solid #FFD700;">
+            {% for message in messages %}
+            <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,16 @@
+<h2>Available Parking Slots</h2>
+
+{% for s in slots %}
+<form method="POST">
+    Slot ID: {{s[0]}} |
+    Owner: {{s[1]}} |
+    Location: {{s[2]}} |
+    Price: ₹{{s[3]}}
+
+    <input type="hidden" name="slot_id" value="{{s[0]}}">
+    <button>Book</button>
+</form>
+<br>
+{% endfor %}
+
+<a href="/">Home</a>

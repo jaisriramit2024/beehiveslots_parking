@@ -1,0 +1,251 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .ticket-wrap {
+        max-width: 540px;
+        margin: 0 auto;
+    }
+
+    /* Ticket card with tear-line effect */
+    .ticket-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 215, 0, 0.25);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 0 40px rgba(255, 215, 0, 0.08);
+    }
+
+    .ticket-header {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+        padding: 1.8rem 2rem;
+        text-align: center;
+        border-bottom: 2px dashed rgba(255, 215, 0, 0.2);
+        position: relative;
+    }
+
+    .ticket-header .check {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .ticket-header h2 {
+        color: var(--primary);
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .ticket-header p {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
+        margin-top: 0.3rem;
+    }
+
+    /* Notch circles on left/right of tear line */
+    .ticket-header::before,
+    .ticket-header::after {
+        content: '';
+        position: absolute;
+        bottom: -14px;
+        width: 26px;
+        height: 26px;
+        background: #121212;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .ticket-header::before {
+        left: -13px;
+    }
+
+    .ticket-header::after {
+        right: -13px;
+    }
+
+    .ticket-body {
+        padding: 2rem;
+    }
+
+    .trow {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        font-size: 0.92rem;
+    }
+
+    .trow:last-child {
+        border-bottom: none;
+    }
+
+    .trow .tlabel {
+        color: rgba(255, 255, 255, 0.38);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .trow .tvalue {
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+        text-align: right;
+        max-width: 60%;
+    }
+
+    .ticket-footer {
+        background: rgba(255, 215, 0, 0.06);
+        border-top: 2px dashed rgba(255, 215, 0, 0.2);
+        padding: 1.2rem 2rem;
+        text-align: center;
+    }
+
+    .ticket-id {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--primary);
+        letter-spacing: 0.12em;
+    }
+
+    .ticket-id-label {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.35);
+        margin-bottom: 4px;
+    }
+
+    /* Print button */
+    .btn-row {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    @media print {
+
+        .navbar,
+        .btn-row {
+            display: none !important;
+        }
+
+        body {
+            background: white !important;
+            color: black !important;
+        }
+
+        .ticket-card {
+            border: 2px solid #333;
+            box-shadow: none;
+        }
+
+        .ticket-header h2,
+        .ticket-id {
+            color: #333 !important;
+        }
+
+        .trow .tlabel {
+            color: #666 !important;
+        }
+
+        .trow .tvalue {
+            color: #000 !important;
+        }
+    }
+</style>
+
+<div class="ticket-wrap">
+
+    <div class="ticket-card">
+
+        <!-- Header -->
+        <div class="ticket-header">
+            <div class="check">✅</div>
+            <h2>Booking Confirmed!</h2>
+            <p>Your parking slot has been reserved successfully.</p>
+        </div>
+
+        <!-- Body -->
+        <div class="ticket-body">
+
+            <div class="trow">
+                <div>
+                    <div class="tlabel">Parking Name</div>
+                    <div class="tvalue">{{ booking.lot.name }}</div>
+                </div>
+            </div>
+
+            <div class="trow">
+                <div>
+                    <div class="tlabel">Address</div>
+                    <div class="tvalue">{{ booking.lot.full_address or booking.lot.location }}</div>
+                </div>
+            </div>
+
+            <div class="trow">
+                <div>
+                    <div class="tlabel">City</div>
+                    <div class="tvalue">{{ booking.lot.city or '—' }}</div>
+                </div>
+            </div>
+
+            <div class="trow">
+                <div class="tlabel">Parker / Guest Name</div>
+                <div class="tvalue">{{ booking.user.name }}</div>
+            </div>
+
+            <div class="trow">
+                <div class="tlabel">Vehicle Type Accepted</div>
+                <div class="tvalue">
+                    {% if booking.lot.vehicle_type == 'car' %}🚗 Car
+                    {% elif booking.lot.vehicle_type == 'bike' %}🏍️ Bike
+                    {% else %}🚗🏍️ Car & Bike{% endif %}
+                </div>
+            </div>
+
+            <div class="trow">
+                <div class="tlabel">Duration</div>
+                <div class="tvalue">
+                    {{ booking.duration_hours }} hour{% if booking.duration_hours > 1 %}s{% endif %}
+                </div>
+            </div>
+
+            <div class="trow">
+                <div class="tlabel">Check-in Time</div>
+                <div class="tvalue">
+                    {{ booking.booked_at.strftime('%d %b %Y, %I:%M %p') }} IST
+                </div>
+            </div>
+
+            <div class="trow">
+                <div class="tlabel">Amount Paid</div>
+                <div class="tvalue" style="color: var(--primary); font-size:1.1rem;">
+                    ₹{{ booking.amount_paid }}
+                </div>
+            </div>
+
+            <div class="trow">
+                <div class="tlabel">Status</div>
+                <div class="tvalue" style="color: #00e676;">✅ {{ booking.status }}</div>
+            </div>
+
+        </div>
+
+        <!-- Footer with Ticket ID -->
+        <div class="ticket-footer">
+            <div class="ticket-id-label">BOOKING REFERENCE</div>
+            <div class="ticket-id">#BH{{ '%06d' | format(booking.id) }}</div>
+        </div>
+
+    </div>
+
+    <!-- Action buttons -->
+    <div class="btn-row">
+        <button class="btn" onclick="window.print()" style="flex:1;">
+            🖨️ Print Ticket
+        </button>
+        <a href="/" class="btn btn-secondary" style="flex:1; text-align:center;">
+            🏠 Back to Home
+        </a>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h2>Join the Hive 🐝</h2>
+<form method="POST">
+    <label>Name</label>
+    <input name="name" required placeholder="Your Name">
+
+    <label>I want to...</label>
+    <select name="role">
+        <option value="Owner">List Parking Spots (Owner)</option>
+        <option value="Driver">Book Parking Spots (Driver)</option>
+    </select>
+
+    <button class="btn">Register</button>
+    <p style="margin-top: 1rem;">
+        Already have an account? <a href="/login">Login here</a>
+    </p>
+</form>
+{% endblock %}

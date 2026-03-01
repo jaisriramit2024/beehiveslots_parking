@@ -1,0 +1,265 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    /* Hero */
+    .hero {
+        text-align: center;
+        padding: 3rem 1rem 2rem;
+        background: radial-gradient(circle at center, rgba(255, 215, 0, 0.06) 0%, transparent 70%);
+    }
+
+    .hero h1 {
+        font-size: 2.6rem;
+        color: var(--primary);
+        margin-bottom: 0.6rem;
+    }
+
+    .hero p {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 1rem;
+        max-width: 520px;
+        margin: 0 auto;
+    }
+
+    /* Two choice cards */
+    .choice-row {
+        display: flex;
+        gap: 1.2rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 2rem 0 2.5rem;
+    }
+
+    .choice-card {
+        flex: 1;
+        min-width: 240px;
+        max-width: 340px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1.5px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        text-decoration: none;
+        color: white;
+        transition: all 0.25s ease;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+    }
+
+    .choice-card:hover {
+        border-color: var(--primary);
+        background: rgba(255, 215, 0, 0.06);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(255, 215, 0, 0.15);
+    }
+
+    .choice-card .icon {
+        font-size: 2.8rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .choice-card h3 {
+        color: var(--primary);
+        margin-bottom: 0.4rem;
+        font-size: 1.2rem;
+    }
+
+    .choice-card p {
+        font-size: 0.88rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin: 0;
+    }
+
+    /* Map section */
+    #map {
+        height: 440px;
+        border-radius: 16px;
+        z-index: 1;
+    }
+
+    .search-wrap {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1.5px solid var(--primary);
+        border-radius: 30px;
+        padding: 0.5rem 1.4rem;
+        max-width: 440px;
+        margin: 0 auto 1.4rem;
+        box-shadow: 0 0 18px rgba(255, 215, 0, 0.12);
+        gap: 0.6rem;
+    }
+
+    .search-wrap input {
+        border: none;
+        background: transparent;
+        padding: 0.4rem 0;
+        width: 100%;
+        margin: 0;
+        outline: none;
+        box-shadow: none;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .search-wrap input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Popup */
+    .leaflet-popup-content-wrapper {
+        background: #1a1a2e !important;
+        color: white !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    }
+
+    .leaflet-popup-tip {
+        background: #1a1a2e !important;
+    }
+
+    .popup-link {
+        display: inline-block;
+        margin-top: 8px;
+        color: #FFD700;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-decoration: none;
+        border: 1px solid rgba(255, 215, 0, 0.4);
+        padding: 3px 10px;
+        border-radius: 20px;
+    }
+
+    .popup-link:hover {
+        background: rgba(255, 215, 0, 0.15);
+    }
+</style>
+
+<!-- Hero -->
+<div class="hero">
+    <h1>🐝 Find your perfect spot</h1>
+    <p>Whether you have a space to share or need somewhere to park, Beehive has you covered.</p>
+</div>
+
+<!-- Two Choice Cards -->
+<div class="choice-row">
+    {% if session.get('role') == 'Owner' %}
+    <a href="/owner_dashboard" class="choice-card">
+        <div class="icon">🅿️</div>
+        <h3>Go to My Dashboard</h3>
+        <p>Manage your listings, view earnings, and add new parking spaces.</p>
+    </a>
+    <a href="/" class="choice-card" style="pointer-events:none; opacity:0.4;">
+        <div class="icon">🚗</div>
+        <h3>I'm Looking for Parking</h3>
+        <p>You're logged in as an Owner. Logout to switch roles.</p>
+    </a>
+    {% elif session.get('role') == 'Driver' %}
+    <a href="/register/owner" class="choice-card">
+        <div class="icon">🅿️</div>
+        <h3>I'm a Parking Owner</h3>
+        <p>List your parking space and start earning money from empty spots.</p>
+    </a>
+    <a href="/driver_dashboard" class="choice-card">
+        <div class="icon">🚗</div>
+        <h3>Go to My Dashboard</h3>
+        <p>Find parking spaces, view your bookings, and manage your account.</p>
+    </a>
+    {% else %}
+    <a href="/register/owner" class="choice-card">
+        <div class="icon">🅿️</div>
+        <h3>I'm a Parking Owner</h3>
+        <p>List your parking space and start earning money from empty spots.</p>
+    </a>
+    <a href="/register/parker" class="choice-card">
+        <div class="icon">🚗</div>
+        <h3>I'm Looking for Parking</h3>
+        <p>Search nearby spots, see real-time availability, and book instantly.</p>
+    </a>
+    {% endif %}
+</div>
+
+<!-- Map & Search -->
+<div style="margin-bottom: 0.8rem; text-align:center;">
+    <h3 style="color:rgba(255,255,255,0.7); font-weight:600; font-size:1.1rem; margin-bottom:1.2rem;">
+        Browse available parking spaces 🗺️
+    </h3>
+</div>
+
+<div class="search-wrap">
+    <span>🔍</span>
+    <input type="text" id="location-search" placeholder="Enter Location (e.g. Chennai)" autocomplete="off">
+</div>
+
+<div class="glass-panel" style="padding:1.2rem;">
+    <div id="map"></div>
+    <p style="text-align:center; margin-top:0.7rem; color:rgba(255,255,255,0.35); font-size:0.8rem;">
+        🟡 Each marker is a registered parking space — click for details
+    </p>
+</div>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    const map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        maxZoom: 19
+    }).addTo(map);
+
+    const dotIcon = L.divIcon({
+        className: '',
+        html: `<div style="width:16px;height:16px;border-radius:50%;background:#FFD700;
+               border:2px solid #fff;box-shadow:0 0 8px rgba(255,215,0,0.8);"></div>`,
+        iconSize: [16, 16], iconAnchor: [8, 8], popupAnchor: [0, -10]
+    });
+
+    let markers = [];
+
+    function buildPopup(lot) {
+        const vLabel = lot.vehicle_type === 'car' ? '🚗 Car'
+            : lot.vehicle_type === 'bike' ? '🏍️ Bike' : '🚗🏍️ Both';
+        const price = lot.price ? `· ₹${lot.price}/hr` : '';
+        return `
+            <strong style="font-size:1rem;">${lot.name}</strong><br>
+            <small style="color:rgba(255,255,255,0.5);">📍 ${lot.city || lot.location}</small><br>
+            <small>🅿️ ${lot.available_slots} slot(s) &nbsp;${vLabel} ${price}</small><br>
+            <a class="popup-link" href="/parking/${lot.id}">View Details →</a>
+        `;
+    }
+
+    function loadMarkers(city = '') {
+        const url = city ? `/api/parking_lots?city=${encodeURIComponent(city)}` : '/api/parking_lots';
+        fetch(url).then(r => r.json()).then(lots => {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            lots.forEach(lot => {
+                const m = L.marker([lot.lat, lot.lng], { icon: dotIcon });
+                m.bindPopup(buildPopup(lot), { maxWidth: 240 });
+                m.addTo(map);
+                markers.push(m);
+            });
+            if (markers.length) {
+                map.fitBounds(L.featureGroup(markers).getBounds().pad(0.3));
+            }
+        });
+    }
+
+    loadMarkers();
+
+    document.getElementById('location-search').addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        const q = this.value.trim();
+        if (!q) { loadMarkers(); return; }
+        loadMarkers(q);
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`)
+            .then(r => r.json())
+            .then(res => {
+                if (res.length) map.flyTo([+res[0].lat, +res[0].lon], 13, { duration: 1.2 });
+            });
+    });
+</script>
+{% endblock %}

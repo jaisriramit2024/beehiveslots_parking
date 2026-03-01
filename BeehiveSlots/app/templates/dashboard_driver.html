@@ -1,0 +1,200 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    #map {
+        height: 480px;
+        border-radius: 16px;
+        z-index: 1;
+    }
+
+    .search-wrap {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1.5px solid var(--primary);
+        border-radius: 30px;
+        padding: 0.55rem 1.4rem;
+        max-width: 460px;
+        margin: 0 auto 1.8rem;
+        box-shadow: 0 0 18px rgba(255, 215, 0, 0.12);
+        gap: 0.6rem;
+    }
+
+    .search-wrap input {
+        border: none;
+        background: transparent;
+        padding: 0.4rem 0;
+        width: 100%;
+        margin: 0;
+        outline: none;
+        box-shadow: none;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .search-wrap input::placeholder {
+        color: rgba(255, 255, 255, 0.42);
+    }
+
+    .leaflet-popup-content-wrapper {
+        background: #1a1a2e !important;
+        color: white !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 215, 0, 0.3) !important;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .leaflet-popup-tip {
+        background: #1a1a2e !important;
+    }
+
+    .popup-title {
+        font-weight: 700;
+        font-size: 1rem;
+        margin-bottom: 4px;
+    }
+
+    .popup-meta {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.8rem;
+        margin-bottom: 4px;
+    }
+
+    .popup-link {
+        display: inline-block;
+        margin-top: 8px;
+        color: #FFD700;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-decoration: none;
+        border: 1px solid rgba(255, 215, 0, 0.4);
+        padding: 3px 10px;
+        border-radius: 20px;
+        transition: background 0.2s;
+    }
+
+    .popup-link:hover {
+        background: rgba(255, 215, 0, 0.15);
+    }
+
+    .result-bar {
+        text-align: center;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 0.8rem;
+    }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+    <h2>Find Parking 🐝</h2>
+    <span style="color:rgba(255,255,255,0.5); font-size:0.9rem;">{{ session.get('name') }}</span>
+</div>
+
+<!-- Search -->
+<div class="search-wrap">
+    <span style="font-size:1.1rem;">🔍</span>
+    <input type="text" id="location-search" placeholder="Enter Location (e.g. Chennai)" autocomplete="off">
+</div>
+<div class="result-bar" id="result-bar"></div>
+
+{% if active_booking %}
+<div class="glass-panel" style="padding:1.5rem; margin-bottom:2rem; border-left:5px solid var(--primary);">
+    <h3 style="color:var(--primary);">⏱ Active Booking</h3>
+    <p><strong>Location:</strong> {{ active_booking.slot_ref.location }}</p>
+    <p><strong>Rate:</strong> ₹{{ active_booking.slot_ref.price }}/hr</p>
+    <p><strong>Started At:</strong> {{ active_booking.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+    <form action="/checkout" method="POST" style="box-shadow:none;padding:0;background:transparent;margin-top:1rem;">
+        <input type="hidden" name="booking_id" value="{{ active_booking.id }}">
+        <button class="btn btn-danger">🛑 Check Out &amp; Pay</button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Map -->
+<div class="glass-panel" style="padding:1.2rem;">
+    <div id="map"></div>
+    <p style="text-align:center; margin-top:0.8rem; color:rgba(255,255,255,0.4); font-size:0.82rem;">
+        🟡 Each marker is a registered parking space — click for details
+    </p>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    const map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        maxZoom: 19
+    }).addTo(map);
+
+    const dotIcon = L.divIcon({
+        className: '',
+        html: `<div style="width:18px;height:18px;border-radius:50%;background:#FFD700;
+               border:2.5px solid #fff;box-shadow:0 0 10px rgba(255,215,0,0.9);cursor:pointer;"></div>`,
+        iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -12]
+    });
+
+    let currentMarkers = [];
+
+    function buildPopup(lot) {
+        const vLabel = lot.vehicle_type === 'car' ? '🚗 Car'
+            : lot.vehicle_type === 'bike' ? '🏍️ Bike' : '🚗🏍️ Both';
+        const priceStr = lot.price ? `· ₹${lot.price}/hr` : '';
+        return `
+            <div class="popup-title">${lot.name}</div>
+            <div class="popup-meta">📍 ${lot.city || lot.location}</div>
+            <div style="font-size:0.82rem;color:rgba(255,255,255,0.7);">
+                🅿️ ${lot.available_slots} slot(s) &nbsp;${vLabel} ${priceStr}
+            </div>
+            <a class="popup-link" href="/parking/${lot.id}">View Details →</a>
+        `;
+    }
+
+    function loadMarkers(city = '') {
+        const url = city ? `/api/parking_lots?city=${encodeURIComponent(city)}` : '/api/parking_lots';
+        fetch(url)
+            .then(r => r.json())
+            .then(lots => {
+                currentMarkers.forEach(m => map.removeLayer(m));
+                currentMarkers = [];
+
+                document.getElementById('result-bar').textContent =
+                    city ? `${lots.length} parking space(s) found in "${city}"` : '';
+
+                lots.forEach(lot => {
+                    const m = L.marker([lot.lat, lot.lng], { icon: dotIcon });
+                    m.bindPopup(buildPopup(lot), { maxWidth: 240 });
+                    m.addTo(map);
+                    currentMarkers.push(m);
+                });
+
+                if (currentMarkers.length > 0) {
+                    const grp = L.featureGroup(currentMarkers);
+                    map.fitBounds(grp.getBounds().pad(0.3));
+                }
+            });
+    }
+
+    loadMarkers();
+
+    document.getElementById('location-search').addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        const query = this.value.trim();
+        if (!query) { loadMarkers(); return; }
+
+        // 1. Filter markers by city
+        loadMarkers(query);
+
+        // 2. Geocode for map zoom
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+            .then(r => r.json())
+            .then(results => {
+                if (results.length) {
+                    map.flyTo([parseFloat(results[0].lat), parseFloat(results[0].lon)], 13, { duration: 1.2 });
+                }
+            });
+    });
+</script>
+{% endblock %}

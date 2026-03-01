@@ -1,0 +1,187 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .detail-card {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .detail-img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 16px;
+        margin-bottom: 1.8rem;
+    }
+
+    .detail-img-placeholder {
+        width: 100%;
+        height: 300px;
+        border-radius: 16px;
+        background: rgba(255, 215, 0, 0.05);
+        border: 2px dashed rgba(255, 215, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 4rem;
+        margin-bottom: 1.8rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.2rem;
+        margin-bottom: 2rem;
+    }
+
+    @media(max-width:520px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .info-block {}
+
+    .info-label {
+        color: rgba(255, 255, 255, 0.38);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 4px;
+    }
+
+    .info-value {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 14px;
+        border-radius: 20px;
+        background: rgba(255, 215, 0, 0.12);
+        color: var(--primary);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    /* Toast */
+    #booking-toast {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        background: rgba(30, 30, 30, 0.96);
+        color: #fff;
+        padding: 0.85rem 1.5rem;
+        border-radius: 40px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.35s ease, transform 0.35s ease;
+        pointer-events: none;
+        z-index: 9999;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #booking-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+</style>
+
+<div class="detail-card">
+    <a href="javascript:history.back()" style="color:var(--primary); font-size:0.9rem; text-decoration:none;">
+        ← Back
+    </a>
+
+    <div class="glass-panel" style="padding:2rem; margin-top:1.2rem;">
+
+        <!-- Image -->
+        {% if lot.image_filename %}
+        <img class="detail-img" src="{{ url_for('static', filename='uploads/' + lot.image_filename) }}"
+            alt="{{ lot.name }}">
+        {% else %}
+        <div class="detail-img-placeholder">🅿️</div>
+        {% endif %}
+
+        <!-- Title -->
+        <h2 style="margin-bottom:0.3rem;">{{ lot.name }}</h2>
+        <div style="color:rgba(255,255,255,0.45); font-size:0.9rem; margin-bottom:1.8rem;">
+            📍 {% if lot.full_address %}{{ lot.full_address }}{% else %}{{ lot.location }}{% endif %}
+            {% if lot.city %} &nbsp;·&nbsp; <span style="color:var(--primary);">{{ lot.city }}</span>{% endif %}
+        </div>
+
+        <!-- Details grid -->
+        <div class="info-grid">
+            <div class="info-block">
+                <div class="info-label">Available Slots</div>
+                <div class="info-value">🅿️ <strong>{{ lot.available_slots }}</strong> slot(s)</div>
+            </div>
+            <div class="info-block">
+                <div class="info-label">Vehicle Type</div>
+                <div class="info-value">
+                    {% if lot.vehicle_type == 'car' %}
+                    <span class="badge">🚗 Car</span>
+                    {% elif lot.vehicle_type == 'bike' %}
+                    <span class="badge">🏍️ Bike</span>
+                    {% else %}
+                    <span class="badge">🚗🏍️ Car &amp; Bike</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if lot.price %}
+            <div class="info-block">
+                <div class="info-label">Price</div>
+                <div class="info-value">💰 <strong>₹{{ lot.price }}</strong> / hour</div>
+            </div>
+            {% endif %}
+            <div class="info-block">
+                <div class="info-label">Coordinates</div>
+                <div class="info-value" style="font-size:0.82rem; color:rgba(255,255,255,0.5);">
+                    {{ "%.4f"|format(lot.latitude) }}, {{ "%.4f"|format(lot.longitude) }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Book button -->
+        {% if lot.available_slots > 0 %}
+        {% if session.get('user_id') %}
+        <a href="/book_parking/{{ lot.id }}" class="btn"
+            style="width:100%; font-size:1.05rem; display:block; text-align:center;">
+            🔒 Book This Slot
+        </a>
+        {% else %}
+        <a href="/login" class="btn btn-secondary"
+            style="width:100%; font-size:1.05rem; display:block; text-align:center;">
+            🔑 Login to Book
+        </a>
+        {% endif %}
+        {% else %}
+        <button class="btn" style="width:100%; opacity:0.45; cursor:not-allowed;" disabled>
+            No Slots Available
+        </button>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Toast notification -->
+<div id="booking-toast">✅ Your slot is booked! See you there.</div>
+
+<script>
+    function bookSlot() {
+        const toast = document.getElementById('booking-toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+</script>
+{% endblock %}
