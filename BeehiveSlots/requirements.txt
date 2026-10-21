@@ -5,3 +5,4 @@ simple-websocket
 eventlet
 flasgger
 python-dotenv
+gunicorn
